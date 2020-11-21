@@ -1,27 +1,33 @@
 import { IGeometry } from './geometry';
+import { Extent } from './extent';
+import { IProjection } from '../projection';
+import { Map } from '../map';
 
 export class Point implements IGeometry {
 
-  /** 
-   * 点的绘制半径
-   * @type {number}
-   */
-  static RADIUS : number = 10; // 单位：px
+  static RADIUS : number = 10; // px
 
-  /** 
-   * 点横轴坐标
-   * @type {number}
-   */
   private _x : number;
-  /** 
-   * 点纵轴坐标
-   * @type {number}
-   */
   private _y : number;
+  private _lon : number;
+  private _lat : number;
+  private _projection : IProjection;
+  private _exntent : Extent;
 
-  constructor (x : number, y : number) {
-    this._x = x;
-    this._y = y;
+  constructor (lon : number, lat : number) {
+    this._lon = lon;
+    this._lat = lat;
+  }
+
+  getExtent () : Extent {
+    return this._exntent;
+  }
+
+  addTo (map : Map) {
+    this._projection = map.projection;
+    [this._x, this._y] = this._projection.project([this._lon, this._lat]);
+    this._exntent = new Extent(this._x, this._y, this._x, this._y);
+    map.addGeometry(this);
   }
 
   draw (ctx : CanvasRenderingContext2D) {
@@ -29,7 +35,13 @@ export class Point implements IGeometry {
     ctx.strokeStyle = '#ff0000';
     ctx.fillStyle = '#ff0000';
     ctx.beginPath();
-    ctx.arc(this._x, this._y, Point.RADIUS, 0, Math.PI * 2, true);
+    const matrix = ctx.getTransform();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    const [x, y] = [
+      matrix.a * this._x + matrix.e,
+      matrix.d * this._y + matrix.f
+    ];
+    ctx.arc(x, y, Point.RADIUS, 0, Math.PI * 2, true);
     ctx.fill();
     ctx.stroke();
     ctx.restore();
