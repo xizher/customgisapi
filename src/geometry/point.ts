@@ -28,6 +28,7 @@ export class Point implements IGeometry {
     [this._x, this._y] = this._projection.project([this._lon, this._lat]);
     this._exntent = new Extent(this._x, this._y, this._x, this._y);
     map.addGeometry(this);
+    return this
   }
 
   draw (ctx : CanvasRenderingContext2D) {
@@ -45,6 +46,7 @@ export class Point implements IGeometry {
     ctx.fill();
     ctx.stroke();
     ctx.restore();
+    return this
   }
 
 }

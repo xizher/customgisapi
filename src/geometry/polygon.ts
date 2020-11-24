@@ -33,6 +33,7 @@ export class Polygon implements IGeometry {
     });
     this._extent = new Extent(xmin, ymin, xmax, ymax);
     map.addGeometry(this);
+    return this
   }
 
   draw(ctx : CanvasRenderingContext2D) {
@@ -58,6 +59,7 @@ export class Polygon implements IGeometry {
     ctx.fill('evenodd');
     ctx.stroke();
     ctx.restore();
+    return this
   }
 
 }

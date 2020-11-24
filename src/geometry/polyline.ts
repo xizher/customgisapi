@@ -30,6 +30,7 @@ export class Polyline implements IGeometry {
     });
     this._extent = new Extent(xmin, ymin, xmax, ymax);
     map.addGeometry(this);
+    return this
   }
 
   draw (ctx : CanvasRenderingContext2D) {
@@ -50,6 +51,7 @@ export class Polyline implements IGeometry {
     });
     ctx.stroke();
     ctx.restore();
+    return this
   }
 
 }
