@@ -1,8 +1,9 @@
 import { IProjection } from './projection';
 import { WebMercator } from './projection/web-mercator';
 import { Extent, IGeometry } from './geometry'
+import { CustomEvent } from '../../customevent'
 
-export class Map {
+export class Map extends CustomEvent {
 
   private _container : HTMLDivElement;
   private _canvas : HTMLCanvasElement;
@@ -18,16 +19,13 @@ export class Map {
   private _center : [number, number] = [0, 0];
   private _extext : Extent;
   private _projection : IProjection;
-  private _events : any = { // 地图事件监听管理
-    'move': [],
-    'extent': []
-  }
 
   get projection () : IProjection {
     return this._projection
   }
 
   constructor (id : string | HTMLDivElement) {
+    super()
     this._container = id instanceof HTMLDivElement
       ? id
       : document.getElementById(id) as HTMLDivElement;
@@ -65,10 +63,6 @@ export class Map {
     );
   }
 
-  on (event, handler) {
-    this._events[event].push(handler)
-  }
-
   setView (center : [number, number], zoom : number = this._zoom) {
     this._center = center;
     this._zoom = Math.max(1, Math.min(20, zoom));
@@ -104,12 +98,12 @@ export class Map {
       Math.max(x1, x2), Math.max(y1, y2)
     );
     this._center= this._projection.unproject([(x1 + x2) / 2, (y1 + y2) / 2]);
-    this._events.extent.forEach(hander => hander({
+    this.fire('extent-change', {
       extent: this._extext,
       center: this._center,
       zoom: this._zoom,
       matrix
-    }));
+    })
   }
 
   redraw () {
