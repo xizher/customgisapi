@@ -63,14 +63,15 @@ export class Map extends CustomEvent {
     );
   }
 
+  // 设置视图级别及视图中心
   setView (center : [number, number], zoom : number = this._zoom) {
     this._center = center;
     this._zoom = Math.max(1, Math.min(20, zoom));
     const [x, y] = this._projection.project(center);
     const extent : Extent = this._projection.getExtent();
     const [a, d] = [
-      246 * Math.pow(2, this._zoom) / (extent.xmax - extent.xmin) * extent.xscale,
-      246 * Math.pow(2, this._zoom) / (extent.ymax - extent.ymin) * extent.yscale
+      256 * Math.pow(2, this._zoom) / (extent.xmax - extent.xmin) * extent.xscale,
+      256 * Math.pow(2, this._zoom) / (extent.ymax - extent.ymin) * extent.yscale
     ]
     const [e, f] = [
       this._canvas.width / 2 - a * x,
