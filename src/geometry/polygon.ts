@@ -12,8 +12,8 @@ export class Polygon implements IGeometry {
   private _projected: boolean
   private _extent : Extent
 
-  constructor (lonlat : number[][][]) {
-    this._lonlats = lonlat;
+  constructor (lonlats : number[][][]) {
+    this._lonlats = lonlats;
   }
 
   get extent () : Extent {

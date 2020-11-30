@@ -1,6 +1,6 @@
 import { IProjection } from './projection';
 import { WebMercator } from './projection/web-mercator';
-import { Extent } from './geometry'
+import { Extent, Point } from './geometry'
 import { CustomEvent } from '../../customevent'
 import { GraphicLayer, ILayer } from './layer';
 import { Graphic } from './element';
@@ -96,7 +96,7 @@ export class Map extends CustomEvent {
   }
 
   updateExtent () {
-    const matrix = this._ctx.getTransform();
+    const matrix = this._ctx.getTransform()
     const [x1, y1, x2, y2] = [
       (0 - matrix.e) / matrix.a,
       (0 - matrix.f) / matrix.d,
@@ -107,7 +107,7 @@ export class Map extends CustomEvent {
       Math.min(x1, x2), Math.min(y1, y2),
       Math.max(x1, x2), Math.max(y1, y2)
     );
-    this._center= this._projection.unproject([(x1 + x2) / 2, (y1 + y2) / 2]);
+    this._center = this._projection.unproject([(x1 + x2) / 2, (y1 + y2) / 2]);
     this.fire('extent-change', {
       extent: this._extext,
       center: this._center,
@@ -133,48 +133,96 @@ export class Map extends CustomEvent {
     this._ctx.clearRect(0, 0, this._canvas.width, this._canvas.height);
   }
 
-  _onDoubleClick (event) {
-    if (this._zoom >= 20) {
-      return;
-    }
-    const scale = 2;
-    this._zoom += 1;
+  toMapPoint (screenX, screenY) {
     const matrix = this._ctx.getTransform();
-    const { a, e, d, f } = matrix;
-    const { x, y } = event;
-    const te = (x - scale * (x - e) - e) / a;
-    const tf = (y - scale * (y - f) - f) / d;
-    this._ctx.transform(scale, 0, 0, scale, te, tf);
-    this.redraw();
+    const [x1, y1, x2, y2] = [
+      (0 - matrix.e) / matrix.a,
+      (0 - matrix.f) / matrix.d,
+      (this._canvas.width - matrix.e) / matrix.a,
+      (this._canvas.height - matrix.f) / matrix.d
+    ];
+    this._extext = new Extent(
+      Math.min(x1, x2), Math.min(y1, y2),
+      Math.max(x1, x2), Math.max(y1, y2)
+    );
+    return {
+      lonlat: this._projection.unproject([
+        this._extext.xmin + Math.abs(x1 - x2) / (this._canvas.width / screenX),
+        this._extext.ymax - Math.abs(y1 - y2) / (this._canvas.height / screenY)
+      ]),
+      xy: [
+        this._extext.xmin + Math.abs(x1 - x2) / (this._canvas.width / screenX),
+        this._extext.ymax - Math.abs(y1 - y2) / (this._canvas.height / screenY)
+      ]
+    }
   }
 
-  _onMouseDown (event) {
-    this._drag.flag = true;
-    this._drag.start.x = event.x;
-    this._drag.start.y = event.y;
+  _onDoubleClick (event: MouseEvent) {
+    this.fire('dbclick', {
+      ...this.toMapPoint(event.x, event.y),
+    })
+    // this.fire('double-click', {
+    //   extent: this._extext,
+    //   center: this._center,
+    //   zoom: this._zoom,
+    // })
+    // if (this._zoom >= 20) {
+    //   return;
+    // }
+    // const scale = 2;
+    // this._zoom += 1;
+    // const matrix = this._ctx.getTransform();
+    // const { a, e, d, f } = matrix;
+    // const { x, y } = event;
+    // const te = (x - scale * (x - e) - e) / a;
+    // const tf = (y - scale * (y - f) - f) / d;
+    // this._ctx.transform(scale, 0, 0, scale, te, tf);
+    // this.redraw();
   }
-  
-  _onMouseMove (event) {
-    if (this._drag.flag) {
-      this._drag.end.x = event.x;
-      this._drag.end.y = event.y;
-      const matrix = this._ctx.getTransform();
-      this._ctx.translate((this._drag.end.x - this._drag.start.x) / matrix.a, (this._drag.end.y - this._drag.start.y) / matrix.d);
-      this.redraw();
+
+  _onMouseDown (event: MouseEvent) {
+    const btnId = event.buttons
+    if (btnId === 4) {
+      this._drag.flag = true;
       this._drag.start.x = event.x;
       this._drag.start.y = event.y;
+    } else if (btnId === 1) {
+      this.fire('click', {
+        ...this.toMapPoint(event.x, event.y),
+      })
     }
   }
   
-  _onMouseUp (event) {
-    if (this._drag.flag) {
-      this._drag.end.x = event.x;
-      this._drag.end.y = event.y;
-      const matrix = this._ctx.getTransform();
-      this._ctx.translate((this._drag.end.x - this._drag.start.x) / matrix.a, (this._drag.end.y - this._drag.start.y) / matrix.d);
-      this.redraw();
+  _onMouseMove (event: MouseEvent) {
+    this.fire('mouse-move', {
+      ...this.toMapPoint(event.x, event.y),
+    })
+    const btnId = event.buttons
+    if (btnId === 4) {
+      if (this._drag.flag) {
+        this._drag.end.x = event.x;
+        this._drag.end.y = event.y;
+        const matrix = this._ctx.getTransform();
+        this._ctx.translate((this._drag.end.x - this._drag.start.x) / matrix.a, (this._drag.end.y - this._drag.start.y) / matrix.d);
+        this.redraw();
+        this._drag.start.x = event.x;
+        this._drag.start.y = event.y;
+      }
     }
-    this._drag.flag = false;
+  }
+  
+  _onMouseUp (event: MouseEvent) {
+    const btnId = event.buttons
+    if (btnId === 4) {
+      if (this._drag.flag) {
+        this._drag.end.x = event.x;
+        this._drag.end.y = event.y;
+        const matrix = this._ctx.getTransform();
+        this._ctx.translate((this._drag.end.x - this._drag.start.x) / matrix.a, (this._drag.end.y - this._drag.start.y) / matrix.d);
+        this.redraw();
+      }
+      this._drag.flag = false;
+    }
   }
   
   _onWheel (event) {
