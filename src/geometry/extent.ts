@@ -33,9 +33,9 @@ export class Extent {
   intersect (extent : Extent) : boolean {
     return (
       extent.xmax >= this._xmin
-      && extent.xmin <= this._xmax
-      && extent.ymax >= this._ymin
-      && extent.ymin <= this._ymax
+      || extent.xmin <= this._xmax
+      || extent.ymax >= this._ymin
+      || extent.ymin <= this._ymax
     );
   }
 

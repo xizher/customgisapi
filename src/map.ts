@@ -1,7 +1,9 @@
 import { IProjection } from './projection';
 import { WebMercator } from './projection/web-mercator';
-import { Extent, IGeometry } from './geometry'
+import { Extent } from './geometry'
 import { CustomEvent } from '../../customevent'
+import { GraphicLayer, ILayer } from './layer';
+import { Graphic } from './element';
 
 export class Map extends CustomEvent {
 
@@ -14,11 +16,13 @@ export class Map extends CustomEvent {
     start: { x: 0, y: 0 },
     end: { x: 0, y: 0 },
   }
-  private _geometries: IGeometry[] = [];
   private _zoom : number = 1;
   private _center : [number, number] = [0, 0];
   private _extext : Extent;
   private _projection : IProjection;
+
+  private _defaultGraphicLayer: GraphicLayer = new GraphicLayer()
+  private _layers: ILayer[] = []
 
   get projection () : IProjection {
     return this._projection
@@ -56,7 +60,7 @@ export class Map extends CustomEvent {
     this._projection = new WebMercator();
     this._center = [0, 0];
     this._zoom = 3;
-    const extent = this._projection.getExtent();
+    const extent = this._projection.extent;
     this._ctx.setTransform(
       256 * Math.pow(2, this._zoom) / (extent.xmax - extent.xmin) * extent.xscale, 0, 0,
       256 * Math.pow(2, this._zoom) / (extent.ymax - extent.ymin) * extent.yscale, 0, 0
@@ -66,9 +70,9 @@ export class Map extends CustomEvent {
   // 设置视图级别及视图中心
   setView (center : [number, number], zoom : number = this._zoom) {
     this._center = center;
-    this._zoom = Math.max(1, Math.min(20, zoom));
+    this._zoom = Math.max(3, Math.min(20, zoom));
     const [x, y] = this._projection.project(center);
-    const extent : Extent = this._projection.getExtent();
+    const extent : Extent = this._projection.extent;
     const [a, d] = [
       256 * Math.pow(2, this._zoom) / (extent.xmax - extent.xmin) * extent.xscale,
       256 * Math.pow(2, this._zoom) / (extent.ymax - extent.ymin) * extent.yscale
@@ -81,9 +85,14 @@ export class Map extends CustomEvent {
     this.redraw();
   }
 
-  addGeometry (geometry : IGeometry) {
-    geometry.draw(this._ctx);
-    this._geometries.push(geometry);
+  addLayer (layer: ILayer) {
+    this._layers.push(layer)
+    layer.draw(this._ctx, this._projection, this._extext)
+  }
+
+  addGraphic (graphic: Graphic) {
+    this._defaultGraphicLayer.add(graphic)
+    graphic.draw(this._ctx, this._projection, this._extext)
   }
 
   updateExtent () {
@@ -113,7 +122,10 @@ export class Map extends CustomEvent {
     this._ctx.clearRect(0, 0, this._canvas.width, this._canvas.height);
     this._ctx.restore();
     this.updateExtent();
-    this._geometries.forEach(geometry => geometry.draw(this._ctx));
+    this._defaultGraphicLayer.draw(this._ctx, this._projection, this._extext)
+    this._layers.forEach(layer => {
+      layer.draw(this._ctx, this._projection, this._extext)
+    })
   }
 
   clear () {

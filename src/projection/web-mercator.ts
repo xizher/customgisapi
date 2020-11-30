@@ -5,7 +5,7 @@ export class WebMercator implements IProjection {
 
   static R : number = 6378137;
 
-  getExtent () : Extent {
+  get extent () : Extent {
     const PIR = Math.PI * WebMercator.R;
     return new Extent(-PIR, PIR, PIR, -PIR);
   }

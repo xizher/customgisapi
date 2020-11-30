@@ -1,3 +1,6 @@
 export * from './geometry'
 export * from './map'
 export * from './projection'
+export * from './element'
+export * from './layer'
+export * from './symbol'

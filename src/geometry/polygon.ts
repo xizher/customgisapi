@@ -1,7 +1,7 @@
 import { IGeometry } from './geometry';
 import { Extent } from './extent';
-import { IProjection } from '../projection';
-import { Map } from '../map';
+import { IProjection, WebMercator } from '../projection';
+import { ISymbol, SimpleFillSymbol } from '../symbol';
 
 
 export class Polygon implements IGeometry {
@@ -9,18 +9,19 @@ export class Polygon implements IGeometry {
   private _coordinates : number[][][];
   private _lonlats : number[][][];
   private _projection : IProjection;
+  private _projected: boolean
   private _extent : Extent
 
   constructor (lonlat : number[][][]) {
     this._lonlats = lonlat;
   }
 
-  getExtent () : Extent {
+  get extent () : Extent {
     return this._extent;
   }
 
-  addTo (map: Map) {
-    this._projection = map.projection;
+  project (projection: IProjection) {
+    this._projection = projection;
     this._coordinates = this._lonlats.map((ring: any) => ring.map((point: any) => this._projection.project(point)))
     let [xmin, ymin, xmax, ymax] = [Number.MAX_VALUE, Number.MAX_VALUE, Number.MIN_VALUE, Number.MIN_VALUE];
     this._coordinates.forEach(ring => {
@@ -32,15 +33,21 @@ export class Polygon implements IGeometry {
       });
     });
     this._extent = new Extent(xmin, ymin, xmax, ymax);
-    map.addGeometry(this);
     return this
   }
 
-  draw(ctx : CanvasRenderingContext2D) {
+  async draw(ctx : CanvasRenderingContext2D, projection: IProjection = new WebMercator(), extent: Extent = projection.extent, symbol: ISymbol = new SimpleFillSymbol()) {
+    if (!this._projected) {
+      this.project(projection)
+    }
+    if (!extent.intersect(this._extent)) {
+      return
+    }
     ctx.save();
-    ctx.strokeStyle = '#ff0000';
-    ctx.fillStyle = '#ff0000';
-    ctx.lineWidth = 2;
+    const pSymbol = symbol as SimpleFillSymbol
+    ctx.strokeStyle = pSymbol.strokeStyle;
+    ctx.fillStyle = pSymbol.fillStyle;
+    ctx.lineWidth = pSymbol.lineWidth;
     ctx.beginPath();
     const matrix = ctx.getTransform();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -59,7 +66,6 @@ export class Polygon implements IGeometry {
     ctx.fill('evenodd');
     ctx.stroke();
     ctx.restore();
-    return this
   }
 
 }
